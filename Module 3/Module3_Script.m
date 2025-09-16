@@ -1,127 +1,70 @@
 clearvars; close all; clc;
 
 %% Problem 1
-function [X_sparse, X_error] = OMP(A, y, K, tol )
-    arguments
-        A 
-        y 
-        K 
-        tol = 10e-6
-    end
-    
-    [~, N] = size(A);
-
-    x=0; r=y; I=zeros(0,K);
-    for ii = 1:K
-        [~, I(ii)] = max(A'*r); 
-        I = sort(I);
-
-        A_ii = A(:,I);
-        x_ii = A_ii\y;
-        
-        r_ii =  y - A_ii*x_ii;
-
-        norm_r =norm(r,2); norm_r_ii=norm(r_ii,2);
-
-        if norm_r<=norm_r_ii || norm_r<=tol % Residual is getting larger or residual is small enough
-            break;
-        end
-        
-        r=r_ii; x=x_ii;
-    end
-    
-    X_sparse = zeros(N,1);
-    X_sparse(I) = x;
-    X_error = norm(y - A*X_sparse, 2);
-end
-
-function [X_sparse, X_error] = SP(A, y, K, tol)
-    arguments
-        A 
-        y 
-        K 
-        tol = 10e-6
-    end
-    
-    [~, N] = size(A);
-
-    x=zeros(N,1); r=y; s=[];
-    
-    while true
-        if isapprox(r,0)
-            break;
-        end
-
-        [~, c_ii] = maxk(A'* r, K); c_ii = sort(c_ii);
-        
-        s_ii = union(s, c_ii);
-        
-        
-        x_ii = keep_max(pinv(A(:,s_ii)) * y, K);
-        s_ii(x_ii==0)=[]; x_ii(x_ii==0) =[];
-
-        r_ii =  y - A(:,s_ii)*x_ii;
-
-        norm_r=norm(r,2); norm_r_ii=norm(r_ii,2);
-
-        if norm_r<=norm_r_ii || norm_r<=tol % Residual is getting larger or residual is small enough
-            break;
-        end
-
-        r=r_ii; x=x_ii; s=s_ii;
-
-    end
-
-    X_sparse = zeros(N,1);
-    X_sparse(s) = x;
-    X_error = norm(y - A*X_sparse, 2);
-end
-
-function zeroed_A = keep_max(v, n)
-    [~, idx] = maxk(v,n);
-    zeroed_A = zeros(size(v), 'like', v);
-    zeroed_A(idx) = v(idx);
-end
+% csutils.OMP
+% csutils.SP
 
 %% Problem 2
 load('ps1_2022.mat');
-A = {Af,Ar}; %Sensing
-y = {yf,yr}; %Measurement
-mat_text = {'Af', 'Ar'};
-K = 3;
+A_all = {Af,Ar}; %Sensing
+y_all = {yf,yr}; %Measurement
+text_all = {'Af', 'Ar'};
+S = 3;
 
 % A
-for ii = 1:numel(A)
-    [~, error] = OMP(A{ii},y{ii},K);
-    fprintf("%s Error for OMP: %.4e\n", mat_text{ii}, error)
+for i = 1:numel(A_all)
+    [~, x_error] = csutils.OMP(A_all{i},y_all{i},S);
+    fprintf("%s Error for OMP: %.4e\n", text_all{i}, x_error); 
 end
 
 % B
-for ii = 1:numel(A)
-    [~, error] = SP(A{ii},y{ii},K);
-    fprintf("%s Error for SP: %.4e\n", mat_text{ii}, error)
+for i = 1:numel(A_all)
+    [~, x_error] = csutils.SP(A_all{i},y_all{i},S);
+    fprintf("%s Error for SP: %.4e\n", text_all{i}, x_error);
 end
 
-
+% [omp_x,sp_x]
 
 %% Problem 3
-N = 256; K = 5;
+N = 256; S = 5;
 
 tol = 10e-6;
-num_measurements = 10:10:100;
+num_meas = 0:10:100; 
+n_iter = 100;
 
-for M = num_measurements
-    count = 0;
-    for ii = 1:100
-        x=zeros(N,1); q=randsample(1:N,K); x(q)=randn(K,1);
+count_sp = zeros(size(num_meas));
+count_omp = zeros(size(num_meas));
+
+for i = 1:numel(num_meas)
+    M = num_meas(i);
+
+    for j = 1:n_iter
+        x=zeros(N,1); q=randsample(1:N,S); x(q)=randn(S,1);
         A=randn(M, N); A=orth(A')';
 
         y = A*x;
-        x_sp = SP(A,y,K);
-        error_ii = norm(x_sp - x,2);
-        if error_ii <= tol
-            count = count+1;
-        end
+
+        x_SP = csutils.SP(A,y,S);
+        error_SP = norm(x_SP-x, 2);
+
+        x_OMP = csutils.OMP(A,y,S);
+        error_OMP = norm(x_OMP-x, 2);
+        
+        count_sp(i)  = count_sp(i)  + (error_SP<tol);
+        count_omp(i) = count_omp(i) + (error_OMP<tol);
     end
-    count;
 end
+count_sp  = (count_sp./n_iter)*100;
+count_omp = (count_omp./n_iter)*100;
+
+figure;
+hold on;
+plot(num_meas, count_omp, "-o", "LineWidth", 2, "DisplayName", "OMP");
+plot(num_meas, count_sp, "-s", "LineWidth", 2, "DisplayName", "SP");
+hold off;
+grid on;
+xlabel("Number of Measurements (#)");
+ylabel("Probability of Perfect Recovery (%)");
+title(sprintf("Performance of OMP vs. SP (N=%d, S=%d)", N, S));
+legend("Location", "SouthEast");
+set(gca, "FontSize", 12);
