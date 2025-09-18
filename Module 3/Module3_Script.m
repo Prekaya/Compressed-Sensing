@@ -13,13 +13,13 @@ S = 3;
 
 % A
 for i = 1:numel(A_all)
-    [~, x_error] = csutils.OMP(A_all{i},y_all{i},S);
+    [~, x_error] = csutils.SOLVE_OMP(A_all{i},y_all{i},S);
     fprintf("%s Error for OMP: %.4e\n", text_all{i}, x_error); 
 end
 
 % B
 for i = 1:numel(A_all)
-    [~, x_error] = csutils.SP(A_all{i},y_all{i},S);
+    [~, x_error] = csutils.SOLVE_SP(A_all{i},y_all{i},S);
     fprintf("%s Error for SP: %.4e\n", text_all{i}, x_error);
 end
 
@@ -44,10 +44,10 @@ for i = 1:numel(num_meas)
 
         y = A*x;
 
-        x_SP = csutils.SP(A,y,S);
+        x_SP = csutils.SOLVE_SP(A,y,S);
         error_SP = norm(x_SP-x, 2);
 
-        x_OMP = csutils.OMP(A,y,S);
+        x_OMP = csutils.SOLVE_OMP(A,y,S);
         error_OMP = norm(x_OMP-x, 2);
         
         count_sp(i)  = count_sp(i)  + (error_SP<tol);
