@@ -8,7 +8,7 @@ S = 3;
 
 %% Problem 1
 for i = 1:numel(A_all)
-    [~, error] = csutils.ES(A_all{i}, y_all{i}, S);
+    [~, error] = csutils.SOLVE_ES(A_all{i}, y_all{i}, S);
     fprintf("Error for %s: %.4e\n", txt_all{i}, error)
 end
 
