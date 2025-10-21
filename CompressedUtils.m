@@ -25,7 +25,7 @@ classdef CompressedUtils
 
             % Validate that a and b have the same number of rows
             if M ~= My
-                error('A and y must be have the same number of rows.');
+                error('A and y must be have the same number of rows. %d',My);
             end
 
             r = y; % Initialize the residual
@@ -224,7 +224,7 @@ classdef CompressedUtils
 
             % Validate that a and b have the same number of rows
             if M ~= My
-                error('A and y must be have the same number of rows.');
+                error('A and y must be have the same number of rows A = %d, y = %d.',M, My);
             end
 
             % : min f'*z s.t. Aeq*z = beq, z >= 0
